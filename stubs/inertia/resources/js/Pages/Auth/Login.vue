@@ -38,6 +38,8 @@
                 </jet-button>
             </div>
         </form>
+
+        <jet-socialite v-if="$page.props.jetstream.hasSocialiteFeatures" :socialiteProviders="socialiteProviders" />
     </jet-authentication-card>
 </template>
 
@@ -48,6 +50,7 @@
     import JetInput from '@/Jetstream/Input'
     import JetLabel from '@/Jetstream/Label'
     import JetValidationErrors from '@/Jetstream/ValidationErrors'
+    import JetSocialite from '@/Jetstream/Socialite'
 
     export default {
         components: {
@@ -56,12 +59,14 @@
             JetButton,
             JetInput,
             JetLabel,
-            JetValidationErrors
+            JetValidationErrors,
+            JetSocialite,
         },
 
         props: {
             canResetPassword: Boolean,
-            status: String
+            status: String,
+            socialiteProviders: Object,
         },
 
         data() {
