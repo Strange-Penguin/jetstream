@@ -16,7 +16,8 @@ class InstallCommand extends Command
      * @var string
      */
     protected $signature = 'jetstream:install {stack : The development stack that should be installed}
-                                              {--teams : Indicates if team support should be installed}';
+                                              {--teams : Indicates if team support should be installed}
+                                              {--socialite : Indicates if Socialite support should be installed}';
 
     /**
      * The console command description.
@@ -190,6 +191,11 @@ class InstallCommand extends Command
             $this->installLivewireTeamStack();
         }
 
+        // Socialite...
+        if ($this->option('socialite')) {
+            $this->ensureApplicationIsSocialiteCompatible();
+        }
+
         $this->line('');
         $this->info('Livewire scaffolding installed successfully.');
         $this->comment('Please execute the "npm install && npm run dev" command to build your assets.');
@@ -346,6 +352,10 @@ EOF;
             $this->installInertiaTeamStack();
         }
 
+        if ($this->option('socialite')) {
+            $this->installInertiaSocialiteStack();
+        }
+
         $this->line('');
         $this->info('Inertia scaffolding installed successfully.');
         $this->comment('Please execute the "npm install && npm run dev" command to build your assets.');
@@ -413,7 +423,64 @@ EOF;
     }
 
     /**
-     * Install the service provider in the application configuration file.
+     * Install the Inertia Socialite stack into the application.
+     *
+     * @return void
+     */
+    protected function installInertiaSocialiteStack()
+    {
+        // Directories...
+        (new Filesystem)->ensureDirectoryExists(resource_path('js/Socialite'));
+
+        // Pages...
+        (new Filesystem)->copyDirectory(__DIR__.'/../../stubs/inertia/resources/js/Socialite', resource_path('js/Socialite'));
+
+        $this->ensureApplicationIsSocialiteCompatible();
+    }
+
+    /**
+     * Ensure the installed user model is ready for socialite usage.
+     *
+     * @return void
+     */
+    protected function ensureApplicationIsSocialiteCompatible()
+    {
+        // Require Socialite in composer...
+        (new Process(['composer', 'require', 'laravel/socialite:^5.0'], base_path()))
+            ->setTimeout(null)
+            ->run(function ($type, $output) {
+                $this->output->write($output);
+            });
+
+        // Publish Socialite Migrations...
+        $this->callSilent('vendor:publish', ['--tag' => 'jetstream-socialite-migrations', '--force' => true]);
+
+        if ($this->option('teams')) {
+            // Models...
+            copy(__DIR__.'/../../stubs/app/Models/ConnectedAccount.php', app_path('Models/ConnectedAccount.php'));
+            copy(__DIR__.'/../../stubs/app/Models/UserWithTeamsAndConnectedAccounts.php', app_path('Models/User.php'));
+
+            // Actions...
+            copy(__DIR__.'/../../stubs/app/Actions/Jetstream/CreateUserWithTeamsFromProvider.php', app_path('Actions/Jetstream/CreateUserFromProvider.php'));
+        } else {
+            // Models...
+            copy(__DIR__.'/../../stubs/app/Models/ConnectedAccount.php', app_path('Models/ConnectedAccount.php'));
+            copy(__DIR__.'/../../stubs/app/Models/UserWithConnectedAccounts.php', app_path('Models/User.php'));
+
+            // Actions
+            copy(__DIR__.'/../../stubs/app/Actions/Jetstream/CreateUserFromProvider.php', app_path('Actions/Jetstream/CreateUserFromProvider.php'));
+        }
+
+        // Configuration...
+        $this->replaceInFile("// Features::socialite(['facebook' => true, 'github' => true]),", "Features::socialite(['facebook' => true, 'github' => true]),", config_path('jetstream.php'));
+
+        // Set user password...
+        $this->replaceInFile('// Jetstream::setUserPasswordsUsing(SetUserPassword::class);', 'Jetstream::setUserPasswordsUsing(SetUserPassword::class);', app_path('Providers/JetstreamServiceProvider.php'));
+        $this->replaceInFile('// Jetstream::createUsersFromProviderUsing(CreateUserFromProvider::class);', 'Jetstream::createUsersFromProviderUsing(CreateUserFromProvider::class);', app_path('Providers/JetstreamServiceProvider.php'));
+    }
+
+    /**
+     * Install the Jetstream service providers in the application configuration file.
      *
      * @param  string  $after
      * @param  string  $name

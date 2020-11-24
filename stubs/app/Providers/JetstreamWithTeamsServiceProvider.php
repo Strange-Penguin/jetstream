@@ -4,11 +4,13 @@ namespace App\Providers;
 
 use App\Actions\Jetstream\AddTeamMember;
 use App\Actions\Jetstream\CreateTeam;
+use App\Actions\Jetstream\CreateUserFromProvider;
 use App\Actions\Jetstream\DeleteTeam;
 use App\Actions\Jetstream\DeleteUser;
 use App\Actions\Jetstream\InviteTeamMember;
 use App\Actions\Jetstream\UpdateTeamName;
 use Illuminate\Support\ServiceProvider;
+use Laravel\Jetstream\Actions\SetUserPassword;
 use Laravel\Jetstream\Jetstream;
 
 class JetstreamServiceProvider extends ServiceProvider
@@ -38,6 +40,10 @@ class JetstreamServiceProvider extends ServiceProvider
         Jetstream::inviteTeamMembersUsing(InviteTeamMember::class);
         Jetstream::deleteTeamsUsing(DeleteTeam::class);
         Jetstream::deleteUsersUsing(DeleteUser::class);
+
+        // Socialite...
+        // Jetstream::setUserPasswordsUsing(SetUserPassword::class);
+        // Jetstream::createUsersFromProviderUsing(CreateUserFromProvider::class);
     }
 
     /**

@@ -5,9 +5,11 @@ namespace Laravel\Jetstream;
 use Illuminate\Support\Arr;
 use Laravel\Jetstream\Contracts\AddsTeamMembers;
 use Laravel\Jetstream\Contracts\CreatesTeams;
+use Laravel\Jetstream\Contracts\CreatesUserFromProvider;
 use Laravel\Jetstream\Contracts\DeletesTeams;
 use Laravel\Jetstream\Contracts\DeletesUsers;
 use Laravel\Jetstream\Contracts\InvitesTeamMembers;
+use Laravel\Jetstream\Contracts\SetsUserPasswords;
 use Laravel\Jetstream\Contracts\UpdatesTeamNames;
 
 class Jetstream
@@ -60,6 +62,13 @@ class Jetstream
      * @var string
      */
     public static $membershipModel = 'App\\Models\\Membership';
+
+    /**
+     * The connected account model that should be used by Jetstream.
+     *
+     * @var string
+     */
+    public static $connectedAccountModel = 'App\\Models\\ConnectedAccount';
 
     /**
      * The Inertia manager instance.
@@ -198,6 +207,26 @@ class Jetstream
     }
 
     /**
+     * Determine if Jetstream is supporting Socialite features.
+     *
+     * @return bool
+     */
+    public static function hasSocialiteFeatures()
+    {
+        return Features::hasSocialiteFeatures();
+    }
+
+    /**
+     * Deteremine if Jetstream supports a specific Socialite service.
+     *
+     * @return bool
+     */
+    public static function hasSocialiteSupportFor(string $service)
+    {
+        return Features::optionEnabled(Features::socialite(), $service);
+    }
+
+    /**
      * Determine if the application is using any account deletion features.
      *
      * @return bool
@@ -299,7 +328,7 @@ class Jetstream
     }
 
     /**
-     * Get the name of the team model used by the application.
+     * Get the name of the membership model used by the application.
      *
      * @return string
      */
@@ -322,6 +351,28 @@ class Jetstream
     }
 
     /**
+     * Get the name of the connected accounts  model used by the application.
+     *
+     * @return string
+     */
+    public static function connectedAccountModel()
+    {
+        return static::$connectedAccountModel;
+    }
+
+    /**
+     * Specify the connected account model that should be used by Jetstream.
+     * @param  string  $model
+     * @return static
+     */
+    public static function useConnectedAccountModel(string $model)
+    {
+        static::$connectedAccountModel = $model;
+
+        return new static;
+    }
+
+    /**
      * Register a class / callback that should be used to create teams.
      *
      * @param  string  $class
@@ -330,6 +381,17 @@ class Jetstream
     public static function createTeamsUsing(string $class)
     {
         return app()->singleton(CreatesTeams::class, $class);
+    }
+
+    /**
+     * Register a class / callback that should be used to create users from social providers.
+     *
+     * @param  string  $class
+     * @return void
+     */
+    public static function createUsersFromProviderUsing(string $class)
+    {
+        return app()->singleton(CreatesUserFromProvider::class, $class);
     }
 
     /**
@@ -385,6 +447,17 @@ class Jetstream
     public static function deleteUsersUsing(string $class)
     {
         return app()->singleton(DeletesUsers::class, $class);
+    }
+
+    /**
+     * Register a class / callback that should be used to set user passwords.
+     *
+     * @param  string  $callback
+     * @return void
+     */
+    public static function setUserPasswordsUsing(string $callback)
+    {
+        return app()->singleton(SetsUserPasswords::class, $callback);
     }
 
     /**
